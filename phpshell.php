@@ -82,7 +82,7 @@ if ($_SESSION["admin"] != "admin") {
         <h5>Run command</h5>
         <form action="" method="post">
             <input type="text" name="cmd">
-            <input type="submit">
+            <input type="submit" value="run">
         </form>
         <?php
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
